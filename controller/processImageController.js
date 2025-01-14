@@ -109,12 +109,19 @@ const processVideoController = async (req, res) => {
       videoResponse.data.pipe(writer);
       writer.on("finish", () => {
         clearInterval(fetchInterval);
+        sendProgressToUser(userId, 75);
         ffmpeg(tempInputPath)
           .videoCodec("libx264")
           .outputOptions("-preset fast")
           .outputOptions("-crf 23")
           .on("progress", (info) => {
-            const progress = 75 + Math.floor(info.percent / 4);
+            let percent = info.percent;
+            if (percent < 0 || percent > 100) {
+              console.error("Invalid FFmpeg progress:", percent);
+              percent = 0;
+            }
+
+            const progress = 75 + Math.floor(percent / 4);
             sendProgressToUser(userId, progress);
           })
           .save(tempOutputPath)
